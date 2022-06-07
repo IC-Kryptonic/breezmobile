@@ -13,6 +13,7 @@ import 'package:breez/bloc/podcast_payments/model.dart';
 import 'package:breez/bloc/user_profile/breez_user_model.dart';
 import 'package:breez/bloc/user_profile/user_profile_bloc.dart';
 import 'package:breez/logger.dart';
+import 'package:breez/routes/podcast/episode_metadata_loader.dart';
 import 'package:breez/services/breezlib/breez_bridge.dart';
 import 'package:breez/services/injector.dart';
 import 'package:fixnum/fixnum.dart';
@@ -59,11 +60,13 @@ class PodcastPaymentsBloc with AsyncActionsHandler {
   }
 
   Future _payBoost(PayBoost action) async {
+    print("MORITZ: _payBoost " + (action.sats).toString());
     var currentEpisode = await _getCurrentPlayingEpisode();
     _paymentEventsController
         .add(PaymentEvent(PaymentEventType.BoostStarted, action.sats));
     if (currentEpisode != null) {
-      final value = await _getLightningPaymentValue(currentEpisode);
+      final testValue = await _getLightningPaymentValue(currentEpisode);
+      final value = null;
       if (value != null) {
         _payRecipients(
           currentEpisode,
@@ -229,14 +232,14 @@ class PodcastPaymentsBloc with AsyncActionsHandler {
                 groupKey: _getPodcastGroupKey(episode),
                 groupName: episode.title,
                 tlv: _getTlv(
-                    boost: boost,
-                    episode: episode,
-                    position: position,
-                    customKey: customKey,
-                    customValue: customValue,
-                    boostMessage: boostMessage,
-                    msatTotal: total * 1000,
-                    senderName: senderName,
+                  boost: boost,
+                  episode: episode,
+                  position: position,
+                  customKey: customKey,
+                  customValue: customValue,
+                  boostMessage: boostMessage,
+                  msatTotal: total * 1000,
+                  senderName: senderName,
                 ))
             .then((payResponse) async {
           if (payResponse.paymentError?.isNotEmpty == true) {
@@ -265,6 +268,11 @@ class PodcastPaymentsBloc with AsyncActionsHandler {
   }
 
   Future<Value> _getLightningPaymentValue(Episode episode) async {
+    final metadataLoader = PodcastIndexMetadataLoader();
+    // refresh episode metadata to make sure value recipients are up to date
+    final episodes =
+        await metadataLoader.loadEpisodeMetadata(episode: episode);
+
     // If the episode has a value block parsed from the RSS feed, we'll take that.
     if (episode.value != null) {
       ValueModel valueModel = ValueModel.fromJson(episode.value.toMap());
