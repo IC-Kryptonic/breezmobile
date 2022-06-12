@@ -14,6 +14,7 @@ import 'package:breez/bloc/user_profile/breez_user_model.dart';
 import 'package:breez/bloc/user_profile/user_profile_bloc.dart';
 import 'package:breez/logger.dart';
 import 'package:breez/routes/podcast/episode_metadata_loader.dart';
+import 'package:breez/routes/podcast/podcast_index_api.dart';
 import 'package:breez/services/breezlib/breez_bridge.dart';
 import 'package:breez/services/injector.dart';
 import 'package:fixnum/fixnum.dart';
@@ -60,12 +61,12 @@ class PodcastPaymentsBloc with AsyncActionsHandler {
   }
 
   Future _payBoost(PayBoost action) async {
-    print("MORITZ: _payBoost " + (action.sats).toString());
     var currentEpisode = await _getCurrentPlayingEpisode();
     _paymentEventsController
         .add(PaymentEvent(PaymentEventType.BoostStarted, action.sats));
     if (currentEpisode != null) {
-      final testValue = await _getLightningPaymentValue(currentEpisode);
+      final originalValue = await _getLightningPaymentValue(currentEpisode);
+      final rssValue = await _getLightningPaymentValueRSS(currentEpisode);
       final value = null;
       if (value != null) {
         _payRecipients(
@@ -268,10 +269,6 @@ class PodcastPaymentsBloc with AsyncActionsHandler {
   }
 
   Future<Value> _getLightningPaymentValue(Episode episode) async {
-    final metadataLoader = PodcastIndexMetadataLoader();
-    // refresh episode metadata to make sure value recipients are up to date
-    final episodes =
-        await metadataLoader.loadEpisodeMetadata(episode: episode);
 
     // If the episode has a value block parsed from the RSS feed, we'll take that.
     if (episode.value != null) {
@@ -322,6 +319,45 @@ class PodcastPaymentsBloc with AsyncActionsHandler {
       }
     }
     return null;
+  }
+
+  Future<Value> _getLightningPaymentValueRSS(Episode episode) async {
+    final feed = await PodcastIndexAPI().loadFeed(episode.pguid);
+
+    var value = null;
+
+    for (var feedEpisode in feed.episodes) {
+      if (episode.guid == feedEpisode.guid) {
+        print("Value: Found matching episode in feed");
+        if (feedEpisode.value != null) {
+          final valueModel = ValueModel(
+            type: feedEpisode.value.type,
+            method: feedEpisode.value.method,
+            suggested: feedEpisode.value.suggested,
+          );
+          var destinations = <ValueDestination>[];
+          for (var recipient in feedEpisode.value.recipients) {
+            destinations.add(ValueDestination(
+                name: recipient.name,
+                address: recipient.address,
+                type: recipient.type,
+                split: double.parse(recipient.split),
+                customKey: recipient.customKey,
+                customValue: recipient.customValue));
+          }
+          value = Value._(model: valueModel, recipients: destinations);
+        } else {
+          throw Exception("Episode in feed does not have value tag");
+        }
+      }
+    }
+
+    if (value == null) {
+      throw Exception(
+          "Unable to retrieve value recipients for episode from RSS file");
+    }
+
+    return value;
   }
 
   String _getPodcastGroupKey(Episode episode) {

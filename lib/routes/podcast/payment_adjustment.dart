@@ -299,8 +299,6 @@ class PaymentAdjustmentState extends State<PaymentAdjustment> {
             key: boostWidgetKey,
             userModel: userModel,
             onBoost: (int boostAmount, {String boostMessage}) {
-              print("MORITZ: paymentsBloc.actionsSink.add(PayBoost) " +
-                  boostAmount.toString());
               paymentsBloc.actionsSink.add(PayBoost(
                 boostAmount,
                 boostMessage: boostMessage,
