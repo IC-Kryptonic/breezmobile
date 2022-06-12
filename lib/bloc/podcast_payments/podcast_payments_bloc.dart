@@ -67,6 +67,48 @@ class PodcastPaymentsBloc with AsyncActionsHandler {
     if (currentEpisode != null) {
       final originalValue = await _getLightningPaymentValue(currentEpisode);
       final rssValue = await _getLightningPaymentValueRSS(currentEpisode);
+      
+      // compare that both objects are the same
+      if (originalValue.model.method != rssValue.model.method) {
+        throw Exception(
+          "original value and rss value recipient have different model.method");
+      }
+      if (originalValue.model.suggested != rssValue.model.suggested) {
+        throw Exception(
+          "original value and rss value recipient have different model.suggested");
+      }
+      if (originalValue.model.type != rssValue.model.type) {
+        throw Exception(
+          "original value and rss value recipient have different model.type");
+      }
+      for (var i = 0; i < originalValue.recipients.length; i++) {
+        final originalValueRecipient = originalValue.recipients[i];
+        final rssValueRecipient = rssValue.recipients[i];
+        if (originalValueRecipient.address != rssValueRecipient.address) {
+          throw Exception(
+              "original value and rss value recipient have different address");
+        }
+        if (originalValueRecipient.name != rssValueRecipient.name) {
+          throw Exception(
+              "original value and rss value recipient have different name");
+        }
+        if (originalValueRecipient.split != rssValueRecipient.split) {
+          throw Exception(
+              "original value and rss value recipient have different split");
+        }
+        if (originalValueRecipient.type != rssValueRecipient.type) {
+          throw Exception(
+              "original value and rss value recipient have different type");
+        }
+        if (originalValueRecipient.customKey != rssValueRecipient.customKey) {
+          throw Exception(
+              "original value and rss value recipient have different customKey");
+        }
+        if (originalValueRecipient.customValue != rssValueRecipient.customValue) {
+          throw Exception(
+              "original value and rss value recipient have different customValue");
+        }
+      }
       final value = null;
       if (value != null) {
         _payRecipients(
@@ -269,7 +311,6 @@ class PodcastPaymentsBloc with AsyncActionsHandler {
   }
 
   Future<Value> _getLightningPaymentValue(Episode episode) async {
-
     // If the episode has a value block parsed from the RSS feed, we'll take that.
     if (episode.value != null) {
       ValueModel valueModel = ValueModel.fromJson(episode.value.toMap());
