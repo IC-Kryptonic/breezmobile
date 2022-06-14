@@ -93,8 +93,7 @@ class PodcastPaymentsBloc with AsyncActionsHandler {
               "original value and rss value recipient have different name");
         }
         if (originalValueRecipient.split != rssValueRecipient.split) {
-          throw Exception(
-              "original value and rss value recipient have different split");
+          // throw Exception("original value and rss value recipient have different split");
         }
         if (originalValueRecipient.type != rssValueRecipient.type) {
           throw Exception(
@@ -109,7 +108,7 @@ class PodcastPaymentsBloc with AsyncActionsHandler {
               "original value and rss value recipient have different customValue");
         }
       }
-      final value = null;
+      final value = rssValue;
       if (value != null) {
         _payRecipients(
           currentEpisode,

@@ -296,7 +296,7 @@ class BoostWidget extends StatelessWidget {
     String message,
   ]) {
     final texts = AppLocalizations.of(context);
-    if (acc.balance.toInt() > amount) {
+    if (acc.balance.toInt() <= amount) {
       showFlushbar(
         context,
         message: texts.podcast_boost_not_enough_founds,
